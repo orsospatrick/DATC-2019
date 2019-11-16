@@ -1,27 +1,37 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- * @flow
- */
-
 import React, {useState, useCallback} from 'react';
 import {View, Text, StyleSheet, Alert, TextInput} from 'react-native';
-import {Button} from 'react-native-elements';
+import {Button, Overlay} from 'react-native-elements';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Geolocation from '@react-native-community/geolocation';
 
 const App = () => {
-  const [typeAnimal, setTypeAnimal] = useState('hello');
-  const [nameVet, setNameVet] = useState('gelo');
+  const [typeAnimal, setTypeAnimal] = useState('');
+  const [nameVet, setNameVet] = useState('');
+  const [visible, setVisible] = useState(false);
+  const [latitude, setLatitude] = useState(0);
+  const [longitude, setLongitude] = useState(0);
+
+  const getSensorDetails = () => {
+    Geolocation.getCurrentPosition(info => {
+      console.log(info);
+      setLatitude(info.coords.latitude);
+      setLongitude(info.coords.longitude);
+    });
+  };
 
   const pressButton = () => {
     console.log(typeAnimal + nameVet);
-    Geolocation.getCurrentPosition(info => console.log(info));
-    Alert.alert('This animal will be monitored by DeltaForce');
-    setTypeAnimal('');
-    setNameVet('');
+    setVisible(true);
+    getSensorDetails();
+    const body = {
+      typeAnimal: typeAnimal,
+      nameVet: nameVet,
+      latitude: latitude,
+      longitude: longitude,
+    };
+    console.log(
+      'This data will be send to background worker ' + JSON.stringify(body),
+    );
   };
 
   return (
@@ -49,6 +59,9 @@ const App = () => {
             />
           </View>
         </View>
+        <Overlay isVisible={visible} onBackdropPress={() => setVisible(false)}>
+          <Text>This animal is monitored</Text>
+        </Overlay>
       </View>
     </>
   );
