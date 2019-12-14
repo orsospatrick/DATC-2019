@@ -3,6 +3,7 @@ import {View, Text, StyleSheet, Alert, TextInput} from 'react-native';
 import {Button, Overlay} from 'react-native-elements';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Geolocation from '@react-native-community/geolocation';
+import axios from 'axios';
 
 const App = () => {
   const [typeAnimal, setTypeAnimal] = useState('');
@@ -23,15 +24,42 @@ const App = () => {
     console.log(typeAnimal + nameVet);
     setVisible(true);
     getSensorDetails();
+
+    let type = 0;
+    if (typeAnimal === 'urs') {
+      type = 0;
+    } else if (typeAnimal === 'vulpe') {
+      type = 1;
+    } else if (typeAnimal === 'lup') {
+      type = 2;
+    }
+
     const body = {
-      typeAnimal: typeAnimal,
-      nameVet: nameVet,
-      latitude: latitude,
-      longitude: longitude,
+      Id: 1,
+      Lat: latitude,
+      Long: longitude,
+      Name: 'Georgel',
+      Type: 0,
     };
     console.log(
       'This data will be send to background worker ' + JSON.stringify(body),
     );
+    axios({
+      method: 'post',
+      url: 'https://animaldangerapi.azurewebsites.net/api/Animal',
+      headers: {'Content-Type': 'application/json; charset=utf-8'},
+      data: body,
+    })
+      .then(function(response) {
+        console.log('The response of the server: ' + response);
+      })
+      .catch(function(error) {
+        // handle error
+        console.log(error);
+      })
+      .finally(function() {
+        //
+      });
   };
 
   return (
