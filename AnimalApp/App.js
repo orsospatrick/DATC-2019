@@ -1,5 +1,5 @@
-import React, {useState, useCallback} from 'react';
-import {View, Text, StyleSheet, Alert, TextInput} from 'react-native';
+import React, {useState, useCallback, useEffect} from 'react';
+import {View, Text, StyleSheet, Alert, TextInput, Picker} from 'react-native';
 import {Button, Overlay} from 'react-native-elements';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Geolocation from '@react-native-community/geolocation';
@@ -11,6 +11,7 @@ const App = () => {
   const [visible, setVisible] = useState(false);
   const [latitude, setLatitude] = useState(0);
   const [longitude, setLongitude] = useState(0);
+  const [language, setLanguage] = useState('');
 
   const getSensorDetails = () => {
     Geolocation.getCurrentPosition(info => {
@@ -20,17 +21,17 @@ const App = () => {
     });
   };
 
-  const pressButton = () => {
-    console.log(typeAnimal + nameVet);
-    setVisible(true);
+  useEffect(() => {
     getSensorDetails();
+  });
 
+  const mountSensor = () => {
     let type = 0;
-    if (typeAnimal === 'urs') {
+    if (typeAnimal === 'Bear') {
       type = 0;
-    } else if (typeAnimal === 'vulpe') {
+    } else if (typeAnimal === 'Fox') {
       type = 1;
-    } else if (typeAnimal === 'lup') {
+    } else if (typeAnimal === 'Wolf') {
       type = 2;
     }
 
@@ -38,8 +39,8 @@ const App = () => {
       Id: 1,
       Lat: latitude,
       Long: longitude,
-      Name: 'Georgel',
-      Type: 0,
+      Name: nameVet,
+      Type: type,
     };
     console.log(
       'This data will be send to background worker ' + JSON.stringify(body),
@@ -62,22 +63,36 @@ const App = () => {
       });
   };
 
+  const pressButton = () => {
+    setVisible(true);
+    getSensorDetails();
+    mountSensor();
+  };
+
   return (
     <>
       <View style={styles.bigView}>
         <View style={styles.containerStyle}>
           <TextInput
             style={styles.textStyle}
-            placeholder={'Type of animal'}
-            value={typeAnimal}
-            onChangeText={text => setTypeAnimal(text)}
-          />
-          <TextInput
-            style={styles.textStyle}
-            placeholder={'Vet'}
+            placeholder={'Vet name'}
             value={nameVet}
+            placeholderTextColor="#fff"
             onChangeText={text => setNameVet(text)}
           />
+          <Text style={{color: '#fff', marginLeft: 100, marginTop:20}}>
+            Chose type of animal
+          </Text>
+          <Picker
+            selectedValue={typeAnimal}
+            style={{height: 50, width: 200, marginLeft: 80}}
+            onValueChange={(itemValue, itemIndex) => {
+              setTypeAnimal(itemValue);
+            }}>
+            <Picker.Item label="Bear" value="Bear" />
+            <Picker.Item label="Fox" value="Fox" />
+            <Picker.Item label="Wolf" value="Wolf" />
+          </Picker>
           <View style={styles.buttonContainer}>
             <Button
               title="Activate sensor"

@@ -1,5 +1,15 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, {useState, useEffect, useRef} from 'react';
-import {View, Text, Image, StyleSheet, Alert} from 'react-native';
+import {
+  View,
+  Button,
+  TouchableOpacity,
+  Text,
+  Image,
+  StyleSheet,
+  Alert,
+  Linking,
+} from 'react-native';
 import {useInterval} from './helpers/setInterval';
 import Geolocation from '@react-native-community/geolocation';
 import {getDistance} from 'geolib';
@@ -16,51 +26,48 @@ const App = () => {
   const [distance, setDistance] = useState(0);
   const [alert, setAlert] = useState(false);
   const [animalList, setAnimalList] = useState([]);
+  const [time, setTime] = useState(30000);
+  const [alertGlobal, setAlertGlobal] = useState(false);
 
   const getSensorDetails = () => {
     Geolocation.getCurrentPosition(info => {
-      console.log(info);
       setLatitude(info.coords.latitude);
       setLongitude(info.coords.longitude);
     });
   };
   useEffect(() => {
     // Update the document title using the browser API
+    getSensorDetails();
     populateAnimalData();
+    getMeters();
   }, []);
 
   const getMeters = () => {
-    let jsonFirst = animalList[0];
+    let finalDistance = 0;
+    let distanceResult = 0;
+    let sumDistance = [];
 
-    let distanceResult1 = getDistance(
-      {latitude: latitude, longitude: longitude},
-      {latitude: jsonFirst.lat, longitude: jsonFirst.long},
-    );
-    let jsonSecond = animalList[1];
+    getSensorDetails();
 
-    let distanceResult2 = getDistance(
-      {latitude: latitude, longitude: longitude},
-      {latitude: jsonSecond.lat, longitude: jsonSecond.long},
-    );
-    let jsonThird = animalList[2];
-
-    let distanceResult3 = getDistance(
-      {latitude: latitude, longitude: longitude},
-      {latitude: jsonThird.lat, longitude: jsonThird.long},
-    );
-    console.log(distanceResult1 + distanceResult2 + distanceResult3);
-    let finalDistance = Math.min(
-      distanceResult1,
-      distanceResult2,
-      distanceResult3,
-    );
+    for (let i = 0; i < animalList.length; i++) {
+      distanceResult = getDistance(
+        {latitude: latitude, longitude: longitude},
+        {latitude: animalList[i].lat, longitude: animalList[i].long},
+      );
+      sumDistance.push(distanceResult);
+    }
+    finalDistance = Math.min.apply(null, sumDistance);
     setDistance(finalDistance);
+  };
+
+  const callRescueTeam = () => {
+    Linking.openURL('tel:+40767503706');
   };
 
   const activateAlarm = () => {
     Alert.alert(
-      'Please',
-      'Go in safe Area', // <- this part is optional, you can pass an empty string
+      'Go in safe Area',
+      `Animal is ${distance} meters away from you `, // <- this part is optional, you can pass an empty string
       [{text: 'OK', onPress: () => setAlert(true)}],
       {cancelable: false},
     );
@@ -71,29 +78,51 @@ const App = () => {
       'https://animaldangerapi.azurewebsites.net/api/Animal',
     );
     const data = await response.json();
+    console.log(data);
     setAnimalList(data);
   };
 
+  const showAlert = description => {
+    if (alertGlobal === false) {
+      Alert.alert(`DANGER :${description}!`);
+    }
+  };
+
+  const handleAlert = async () => {
+    const response = await fetch(
+      'https://animaldangerapi.azurewebsites.net/api/Animal/Alerts',
+    );
+    const data = await response.json();
+    console.log(data);
+    if (data != null) {
+      showAlert(data[0].description);
+      setAlertGlobal(true);
+    }
+  };
+
   useInterval(() => {
-    let testDistance = 10105360;
-    // getSensorDetails();
-    getMeters();
     populateAnimalData();
+  }, time);
+
+  useInterval(() => {
+    let testDistance = 2000;
+    getMeters();
+    handleAlert();
     console.log('My longitude' + longitude);
     console.log('My latitidudine' + latitude);
-    console.log('Distance between me and nearest animal' + distance);
+    console.log('Distance between me and nearest animal  ' + distance);
     if (distance < testDistance && alert === false) {
       activateAlarm();
     }
-  }, 10000);
+  }, 1000);
 
   return (
     <>
       <MapView
         style={styles.map}
         region={{
-          latitude: 45.744877,
-          longitude: 21.228261,
+          latitude: latitude,
+          longitude: longitude,
           latitudeDelta: 0.0922,
           longitudeDelta: 0.0421,
         }}
@@ -101,12 +130,13 @@ const App = () => {
         <Marker
           draggable
           coordinate={{
-            latitude: 45.744877,
-            longitude: 21.228261,
+            latitude: latitude,
+            longitude: longitude,
           }}
           onDragEnd={e => alert(JSON.stringify(e.nativeEvent.coordinate))}
           title={'My position'}
           description={'I am here !'}
+          onTouchMove={() => setTime(60000)}
         />
         {animalList.map((animal, index) => (
           <Marker
@@ -123,6 +153,9 @@ const App = () => {
           />
         ))}
       </MapView>
+      <TouchableOpacity style={styles.button} onPress={callRescueTeam}>
+        <Text style={styles.txtButton}>Press for help</Text>
+      </TouchableOpacity>
     </>
   );
 };
@@ -144,6 +177,20 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  txtButton: {
+    textAlign: 'center',
+    fontSize: 18,
+    marginTop: '2%',
+  },
+  button: {
+    position: 'absolute', //use absolute position to show button on top of the map
+    top: '85%', //for center align
+    right: '25%',
+    borderRadius: 20,
+    width: '50%',
+    height: '7%',
+    backgroundColor: '#fff',
   },
 });
 
